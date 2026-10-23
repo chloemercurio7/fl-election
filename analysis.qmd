@@ -53,3 +53,41 @@ gov_rep |>
     panel.grid.major.y = element_blank()
   )
 ```
+
+```{r}
+#| fig-height: 13
+#| fig-width: 9
+
+# Summarize total Republican primary votes for Governor by county (column X2)
+county_votes <- raw_results |>
+  filter(X12 == "Governor", X16 == "REP") |>
+  summarize(votes = sum(as.numeric(X19), na.rm = TRUE), .by = X2) |>
+  rename(county = X2) |>
+  mutate(
+    pct = votes / sum(votes),
+    label = paste0(scales::comma(votes), " (", scales::percent(pct, accuracy = 0.1), ")")
+  )
+
+# Plot total votes for all 67 Florida counties
+county_votes |>
+  ggplot(aes(x = votes, y = fct_reorder(county, votes), fill = fct_reorder(county, votes))) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = label), hjust = -0.05, size = 2.8) +
+  scale_fill_viridis_d(option = "turbo", direction = -1) +
+  scale_x_continuous(
+    labels = scales::label_comma(),
+    expand = expansion(mult = c(0, 0.22))
+  ) +
+  labs(
+    title = "Republican Primary Votes for Governor by County",
+    subtitle = "All 67 Florida counties ordered from highest to lowest total votes",
+    x = "Total Votes",
+    y = NULL,
+    caption = "Source: Florida Department of State (08/18/2026 Primary Election)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    panel.grid.major.y = element_blank()
+  )
+```
