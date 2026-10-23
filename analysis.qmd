@@ -14,23 +14,42 @@ library(tidyverse)
 files <- unzip("2026-pri-outputofficial.zip", exdir = tempdir())
 raw_results <- read_tsv(files, col_names = FALSE, show_col_types = FALSE, quote = "")
 
-# Filter to the Republican primary for Governor and sum votes by candidate
+# Filter to the Republican primary for Governor and calculate vote totals and shares
 gov_rep <- raw_results |>
   filter(X12 == "Governor", X16 == "REP") |>
   summarize(votes = sum(as.numeric(X19), na.rm = TRUE), .by = X15) |>
-  rename(candidate = X15)
+  rename(candidate = X15) |>
+  mutate(
+    pct = votes / sum(votes),
+    # Format a label showing both vote count and percentage share
+    label = paste0(scales::comma(votes), " (", scales::percent(pct, accuracy = 0.1), ")")
+  )
 
-# Plot total votes by candidate
+# Plot total votes by candidate with colors and data labels
 gov_rep |>
-  ggplot(aes(x = votes, y = fct_reorder(candidate, votes))) +
-  geom_col(fill = "#b22222") +
-  scale_x_continuous(labels = scales::label_comma()) +
+  ggplot(aes(x = votes, y = fct_reorder(candidate, votes), fill = fct_reorder(candidate, votes))) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = label), hjust = -0.05, size = 3.3, fontface = "bold") +
+  scale_fill_viridis_d(option = "turbo", direction = -1) +
+  scale_x_continuous(
+    labels = scales::label_comma(),
+    # Expand the right side of the x-axis so the text labels fit
+    expand = expansion(mult = c(0, 0.28))
+  ) +
   labs(
     title = "2026 Florida Republican Primary for Governor",
-    subtitle = "Statewide official vote totals by candidate",
+    subtitle = paste0(
+      "Statewide official results (Total votes: ",
+      scales::comma(sum(gov_rep$votes)),
+      " across all 67 counties)"
+    ),
     x = "Total Votes",
     y = NULL,
-    caption = "Source: Florida Department of State"
+    caption = "Source: Florida Department of State (08/18/2026 Primary Election)"
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 15),
+    panel.grid.major.y = element_blank()
+  )
 ```
